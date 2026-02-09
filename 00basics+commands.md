@@ -100,3 +100,15 @@ Don’t only watch tutorials
 Practice by debugging errors
 
 Build 5–6 real projects
+
+<!-- react commands--------------> -->
+
+to create a react project normal method ----> npx create-react-app project_name
+
+to create a project using vite(vite is a bundler and is comparatively faster to build project as vite only installs necessary files )---> npm create vite@latest
+
+h+enter for help
+
+how to run scripts? -->  npm rum script_name
+
+agar node_modules package nahi hai project ke andar so ---> npm i (i is for install and ab jo bhi necessary files hongi sari install hongi ab)
