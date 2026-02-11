@@ -3,6 +3,9 @@ import Chai from "./chai"
 
 function App() {
 
+  // ab hum kisi variable ko apane html me kais inject karenge so uske liye hum use karege curly braces ka...
+  const Username = "Ashwani"
+
   return (
     // <Chai/>
     // <h1>hello</h1> // react ka ek issue hai kki wo ek hi element ko return kar skta hai yaha se
@@ -16,8 +19,11 @@ function App() {
     // ab ye itani common problem thi ki react ne kaha ki are bhai chhodo div ka jhanjhat ye lo aap bs empty brackets use krlo jise react me fragment kaha gaya hai...
     <> 
       <Chai/>
-      <h1>Hello</h1>    
+      <h1>Hello {Username}</h1>     
+      {/* iss {xyz} ko bolte hai evaluated expression :- yaha pr hum puri js nhi likht eblki final outcome likhte hai  */}
     </>
+
+    
   )
 }
 
