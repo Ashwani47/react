@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+/*  step 8:- Add the following code to your index.css file to enable dark mode support in Tailwind CSS. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* okay now its working fine */
