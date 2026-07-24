@@ -6,7 +6,7 @@ This is our mega project so here we will use all of our knowledge and also learn
 
 ### dependencies That we need :- react-router-dom, react-redux, @reduxjs/toolkit, appwrite, @tinymce/tinymce-react, html-react-parser, react-hook-form, tailwind
 
-## Environment Variables
+## <u>Environment Variables</u>
 -> kuchh variables aise hote hai jise system variable banaya jata hai jaise user id password etc because react ek frontend library hai or yaha pr jo bhi likha jaayega wo js ke through ship hoga browser pr or hum nhi chahte mere authentication keys wagayrea ka accesss kisi or ko mil jaaye... ab ye environment variables kaam me aate  hai jaise authentication purpose, backend se baat krne ke liye etc.
 
 -> jb bhi hum environment variables banaye use eproject ke root me hona chahiye
@@ -71,7 +71,8 @@ console.log(conf.appwriteUrl);
 This makes it easier to manage your configuration in one place.
 
 
-## AppWrite
+## <u>AppWrite</u>
+
 Appwrite provides backend as a service (BaaS). it is open source unlike firbase which is managed by google.
 -> first of all we will create a account on appWrite and create new project...
 
@@ -146,6 +147,260 @@ bucket hai kya ki hum kya kya store karenge to wo to storage me hi hoga na...
 -> copy bucket id then paste it in your .env file
 
 -> go to settings in your image bucket -> update permissions to All users -> check the permission that you need for your user abhi to mai sbko sb permission de raha hun -> update
+
+***
+
+# CONCEPTS
+
+## <u>Vendor Lock-In</u>
+
+### What is Vendor Lock-In ?
+
+Vendor lock-in is a situation where your application becomes so dependent on a particular service or company's technology that switching to another provider later becomes difficult, time-consuming, or expensive.
+
+Simple example
+
+Imagine you buy an Android phone.
+
+You can install apps from many places.  
+You can change brands (Samsung → OnePlus → Motorola) fairly easily.  
+
+Now imagine a device that only works with one company's accessories, apps, and chargers. Once you're in that ecosystem, leaving becomes difficult.
+
+That's vendor lock-in.
+
+### Is Appwrite vendor lock-in?
+
+Yes, to some extent. Every Backend-as-a-Service (BaaS) has some level of vendor lock-in.
+
+The good news is that Appwrite is open source.
+
+That means if one day you don't want to use Appwrite Cloud anymore, you can:
+
+Self-host Appwrite on your own server.  
+Export your data.  
+Continue using the same Appwrite APIs.
+
+This reduces lock-in compared to fully proprietary services.
+
+### Solution?
+To Avoid vendor Lock_in we use services... services? just classes...
+
+***A service is a class or module whose job is to perform a specific task for your application.***
+
+Think of it like hiring specialists.  
+Imagine you're building a house.
+
+👷 Electrician → Handles electricity.  
+🚰 Plumber → Handles water.   
+🧱 Mason → Builds walls.  
+
+You don't ask the mason to fix electrical wiring.  
+Similarly, in a React app:
+
+AuthService → Handles login, signup, logout.  
+DatabaseService → Handles CRUD operations.  
+StorageService → Handles image uploads.  
+EmailService → Sends emails.  
+
+Each service has one responsibility.
+
+***
+
+# CODING
+
+## <u>Creating Services</u>
+
+Create a folder in src and name it Appwrite since we are going to write down all the appwrite related services over here...  
+
+***
+
+### ***auth.js***
+This is Appwrite's ***Authentication*** related Service
+
+```js
+// immporting conf.js
+import conf from '../conf/conf.js'
+```
+ab hum chahe to appwrite ke documentation pr authentication services wala jo section hai waha se help le skte hai..
+
+```js
+import { Client, Account, ID } from "appwrite";
+```
+
+
+```js
+export class AuthService {}
+
+export default AuthService;
+```
+Ab mujhe AuthServices naam se ek calss banani hai or use export karenge but lekin jo bhi iss authservise ko import karega to sbse pahale use ek object banana hoga uske baad usko use kr paayega usse badhiye kyun na hum object bana kar hi export kr de?
+
+```js
+// new one
+export class AuthService {}
+
+const authService = new AuthService()
+
+export default authService;
+```
+
+ab hume client or account banana hoga kyunki sb kaam inhi pr to honge... ab appwrite ke documentation me dekhenge to usne directly bana diya hai...but hum yaha karenge..
+
+```js
+export class AuthService {
+    Client = new Client();
+    account;
+
+    constructor(){
+        this.Client
+            .setEndpoint(conf.appwriteUrl)
+            .setProject(conf.appwriteProjectId),
+        this.account = new Account(this.Client)
+    }
+}
+```
+
+yaha pr humne constructor banaya hai uske andar wo kaam kiya hai.. pr kyun ? hum to object bana rahe hai na or hum chahte hai jb koi iss AuthService class ka object banaye tb jaakr mera setEndpoint and seProject set ho... uske liye humne constructor banaya hai...
+
+ab hum ***createAccount*** method banayenge taaki jb bhi is object ko import kare wo account create kr paaye ab accounnt kaise create hoga usse uska matlb nhi hai wo bs emai, name, password bhej de or ye function uske liye uska account create kr dega... ab account creation ka method fail bhi ho skta hai to usse bachange ke liye hum ***try catch*** ke concept ka use karenge
+
+
+```js
+    async createAccount({email, password, name}){
+        try {
+            const userAccount = await this.account.create({
+                userId: ID.unique(),
+                email: email,
+                password: password
+            })
+            // ceck if user Account is created or not
+            if (userAccount) {
+                // call another method to directly login... its upto you ki aap chahte ho ki userAccount banane ke baad succefull ka message dikha do uske baad boldo ki ab login krlo... ya chaho to userAccount ban gaya to login bhi krwa hi do jaisa hum yaha karenege...
+                return this.login({email, password});
+            } else {
+                return userAccount;
+            }      
+        } catch (error) {
+            throw error;
+        }
+    }
+```
+
+-> ab hum simillarly ***login*** ka function bhi reate kr lenge
+
+```js
+    async login({email, password}){
+        try {
+            return await this.account.createEmailPasswordSession({
+                email: email,
+                password: password
+            })
+        } catch (error) {
+            throw error;
+        }
+    }
+```
+
+-> ***LogOut*** using delete Sessions --> Logout the user. Use 'current' as the session ID to logout on this device, use a session ID to logout on another device. If you're looking to logout the user on all devices, use Delete Sessions instead.
+
+```js
+    async logout() {
+        try {
+            // // this deleteSessions() will delete all the sessions of the user from every browsers
+            // await this.account.deleteSessions();
+            
+            // this logout the current session only... ya phir current ki jagah hum session id's bhi de skte hai jaha jaha se logout krna hai ya "all" likh do tb bhi sb jagah se dlete ho jayega
+            await this.account.deleteSession({ sessionId: "current" })
+        } catch (error) {
+            console.log("AppWrite Service :: logout :: error", error);
+        }
+    }
+```
+
+-> we will create another method ***getCurrentUser()*** to Get the currently logged in user.
+
+```js
+    async getCurrentUser(){
+        try {
+            return await this.account.get();
+        } catch (error) {
+            // throw error; // agar hume error throw nhi krni dusre tareek se dekhni hai
+            console.log("Appwrite service :: getCurrentUser :: error", error);
+        }
+        // agar try me kuchh mila hi nhi koi account mila hi nhi to?
+        return null;
+    }
+```
+
+ab ek kamal ki baat ki jab bhi mujhe future me koi project aaata hai jisme authentication services use ho rahi hai or wo appwrite se hai to as it is ye pura ka puraa code use ho jaayega haan bus documentation padh lena ki kucchh pdate ho to kr lena...
+
+```js
+import conf from '../conf/conf.js'
+import { Client, Account, ID } from "appwrite";
+
+export class AuthService {
+    Client = new Client();
+    account;
+
+    constructor(){
+        this.Client
+            .setEndpoint(conf.appwriteUrl)
+            .setProject(conf.appwriteProjectId),
+        this.account = new Account(this.Client)
+    }
+
+    async createAccount({email, password, name}){
+        try {
+            const userAccount = await this.account.create({
+                userId: ID.unique(),
+                email: email,
+                password: password
+            })
+            if (userAccount) {
+                return this.login({email, password});
+            } else {
+                return userAccount;
+            }      
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async login({email, password}){
+        try {
+            return await this.account.createEmailPasswordSession({
+                email: email,
+                password: password
+            })
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async getCurrentUser(){
+        try {
+            return await this.account.get();
+        } catch (error) {
+            console.log("Appwrite service :: getCurrentUser :: error", error);
+        }
+        return null;
+    }
+
+    async logout() {
+        try {
+            await this.account.deleteSession({ sessionId: "current" })
+        } catch (error) {
+            console.log("AppWrite Service :: logout :: error", error);
+        }
+    }
+
+}
+
+const authService = new AuthService()
+
+export default authService;
+```
 
 ***
 
