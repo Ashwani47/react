@@ -404,3 +404,196 @@ export default authService;
 
 ***
 
+### config.js
+
+major configuration for appwrite is done here...
+
+-> isme hum database and storage se related kaam karne waale hai...jiske liye yaha hume kucch or cheezein import krni hongi...
+
+```js
+import conf from '../conf/conf.js'
+import { Client, ID, Databases, Query, Storage } from "appwrite";
+```
+
+baaki same cheezein repeat karenge jaise class banana objext banana export krna and all.. 
+
+```js
+export class Service {}
+
+const service = new Service();
+
+export default service;
+```
+
+simillarly jaise waha variables banaye the client and auth naam se or baad me constructor me initialize kiye the waise hi yaha bhi client, databases, storage banayenge or uske baad uska constructor bana denge...
+
+```js
+export class Service {
+    client = new Client()
+    databases;
+    storage;
+
+    constructor() {
+        this.client
+            .setEndpoint(conf.appwriteUrl)
+            .setProject(conf.appwriteProjectId);
+        this.databases = new Databases(this.client);
+        this.storage = new Storage(this.client);
+    }
+}
+```
+
+in sbka refernce bhi appwrite ke docs pr available hai hum waha se use kr skte hai...
+
+ab isme apani functionalities add karenge...   
+
+->sbse pahali functionality add krte hai ***createPost*** ki
+
+isme kaafi cheezien user se parameters ke form me lenge jaise title, slug, content, featuredImage, status, userId ...
+
+```js
+    async createPost({title, slug, content, featuredImage, status, userId}){
+        try {
+            return await this.databases.createDocument(
+                conf.appwriteDatabaseId, // Database Id
+                conf.appwriteCollectionId, // Collection Id
+                slug, // document Id
+                {   // data
+                    title,
+                    content,
+                    featuredImage,
+                    status,
+                    userId
+                }
+            )
+        } catch (error) {
+            console.log("Appwrite service :: createPost :: error", error)
+        }
+    }
+```
+
+-> ***updatePost***
+
+```js
+    async updatePost(slug, {title, content, featuredImage, status}){
+        try {
+            return await this.databases.updateDocument(
+                conf.appwriteDatabaseId,
+                conf.appwriteCollectionId,
+                slug,
+                {
+                    title,
+                    content,
+                    featuredImage,
+                    status
+                }
+            )
+        } catch (error) {
+            console.log("Appwrite Service :: updatePost :: error", error);
+        }
+    }
+```
+
+-> ***deletePost***
+
+```js
+    async deletePost(slug){
+        try {
+            await this.databases.deleteDocument(
+                conf.appwriteDatabaseId,
+                conf.appwriteCollectionId,
+                slug
+            )
+            return true
+        } catch (error) {
+            console.log("AppwriteService :: deletePost :: error", error);
+            return false
+        }
+    }
+```
+
+-> id ka use krte hue yaani slug ka use krte hue ek document lana hai to ? detDocument use krenge...  ***getPost***  
+
+```js
+    async getPost(slug){
+        try {
+            return await this.databases.getDocument(
+                conf.appwriteDatabaseId,
+                conf.appwriteCollectionId,
+                slug
+            )
+        } catch (error) {
+            console.log("Appwrite Service :: getPost :: error", error);
+            return false
+        }
+    }
+```
+
+-> id ka use krte hue saare post ko lekr ana hai to listDocument ka use karenge... ***getPosts*** but mai directly collection id ke saare documnets nhi lunga kyunki agar aisa kiya to mere pass wo document bhi aa jayenge jinka status active nhi hai... to uske liye hume seekhana hoga ki queries kaise krte hai...
+
+```js
+    async getPosts(){
+        try {
+            return await this.databases.listDocuments(
+                conf.appwriteDatabaseId,
+                conf.appwriteCollectionId,
+                [ // queries
+                    Query.equal("status", "active") // query kro jisme wahi likar aao yaani equal jiska status active ho... ab aisi queries lagane ke liye aapko apane collection me indexes ka banaye hona bahot jaruri hai...
+                ]
+            )
+        } catch (error) {
+            console.log("Appwrite Service :: getPost :: error", error);
+            return false
+        }
+    }
+```
+
+-> ***uploadFile*** Service... haalaki isko hum aage jaakr ek alag file me likhnge isko bhi or delete file ko bhi...
+
+```js
+    async uploadFile(file){
+        try {
+            return await this.storage.createFile(
+                conf.appwriteBucketId,
+                ID.unique(),
+                file
+            )
+        } catch (error) {
+            console.log("Appwrite Service :: uploadFile :: error", error);
+            return false
+        }
+    }
+```
+
+-> ***deletFile***
+    
+```js
+    async deleteFile(fileId){
+        try {
+            await this.storage.deleteFile(
+                conf.appwriteBucketId,
+                fileId
+            )
+        return true
+        } catch (error) {
+            console.log("Appwrite Service :: deleteFile :: error", error);
+            return false
+        }
+    }
+```
+
+-> ***getFilePreview***
+
+```js
+    getFilePreview(fileId){
+        return this.storage.getFilePreview(
+            conf.appwriteBucketId,
+            fileId
+        )
+    }
+```
+
+aise hi hum apane requiements ke anusar or bhi functionalites add kr skte hai jsie download file etc... wo sb hum baad me assignment me karenge.
+
+***
+
