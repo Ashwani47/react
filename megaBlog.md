@@ -597,3 +597,184 @@ aise hi hum apane requiements ke anusar or bhi functionalites add kr skte hai js
 
 ***
 
+## Configuring Redux Toolkit
+
+-> ***Creating Store***
+
+creating the store named folder inside our src folder then creating a store.js  inside it...
+
+agar hume yaad ho to sbse pahale store create krte the uske liye 
+```js
+import { configureStore } from "@reduxjs/toolkit";
+```
+ye configureStore ka use krke hi store bnta hai or uss store me hum global variables bana kr store krte the... 
+iske baad reducers banate the taaki un global variables ko update kr ske...
+
+```js
+import {configureStore} from '@reduxjs/toolkit'
+
+const store = configureStore({
+    reducer: {} // abhi ruk ke reducer pass krenge pahale use bana to le
+})
+
+export default store;
+```
+
+ab hum store mainly authentication ke liye bana rahe haai taaki check kr paaye user logged in hai ya nahi...
+
+-> to src ke andar hi ek features naam ka folder banayenge or uske andar authSlice.js naam ka file banayenge...
+
+-> ***authSlice.js (Reducer)***
+
+sbse pahale ek initial state banate hai...
+
+ab iske baad apna slice banayenge
+
+iske baad sbse pahale to hume do cheezen export krni padti hai ...
+1. sbse pahala to 
+
+2. reducers ke individual methods ko bhi export krna padta hai...
+
+hence our reducer is ready...
+
+```js
+import { createSlice } from "@reduxjs/toolkit";
+
+const initialState = {
+    status : false, // user is authenticated or not
+    userData : null // agar user ka kuchh data lena ho to uske liye
+}
+
+const authSlice = createSlice({
+    name : 'auth',
+    initialState,
+    reducers: {
+        login: (state, action) => {
+            state.status = true
+            state.userData = action.payload.userData
+        },
+        logout: (state) => {
+            state.status = false
+            state.userData = null
+        }
+    }
+})
+
+export const {login, logout} = authSlice.actions
+
+export default authSlice.reducer
+```
+
+now our store might look like this:- 
+
+```js
+import {configureStore} from '@reduxjs/toolkit'
+import authReducer from '../features/authSlice'
+
+const store = configureStore({
+    reducer: authReducer
+})
+
+export default store;
+```
+
+***
+
+## Creating Components
+
+yaha hum components ko Ek component naam ke folder me banayenge or un sbko ek ek krke export na krke blki barrel export krenge using index.js
+
+### Header
+
+
+
+### Footer
+
+
+
+***
+
+### State Management
+
+humare main kaam abhi App.jsx me hoga..kya?  
+yaha hum dekhenge or manage karnege ki jaise hi mera page load ho to sbse pahale hum check kre ki user login hai ki nahi...  
+-> agar logged in hai to kuchh show karenge or nahi hai to kuchh or 
+
+-> ***Loading state***  
+
+sbse pahala state chahiye hoga hume loading ka? appwrite data kahi se to fetch krke laayega na to usme time bhi lag skta hai to uske liye big projects me achhi practice hoti hai for conditional rendering using loading.. agar loading true hai to loading ka icon show krdo wrna nhi...
+
+-> ***useDispatch***
+
+ab hum hume react ko redux ke saath jodna hota hai to dispatch ka reuirement bhi to padta hai...
+
+--> hum kucch imports karenge jaise useDispatch apani authService etc.
+or uske baad hum chahte hai ki jaise hi application load ho ek useEffect lo or puchho uss service se ki is User Logged in or not
+
+-> till now our ***App.jsx*** might look like this :- 
+
+```js
+import { useState, useEffect } from 'react'
+import {useDispatch} from 'react-redux'
+import './App.css'
+import authService from './appwrite/auth'
+import {login, logout} from './features/authSlice'
+
+function App() {
+  const [loading, setLoading] = useState(true) // by default kept true kyunki hum useEffect ka use krenge to waha pr false kr denge agar required pada to
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    authService.getCurrentUser() // authservice se current user ki detail lao
+    .then((userData) => { // agar detail agayi to then
+      if(userData){ // check if userData actually exists or not
+        dispatch(login(userData)) // usko dispatch krdo .. kaha? authSlice me login me bhej do waha se status true ho jaayega..
+      } else {
+        dispatch(logout())
+      }
+    }) 
+    .finally(() => setLoading(false)) // finally to execute hoga hi hoga
+  }, [])
+
+  // conditional renderring
+  if(!loading){
+    return (
+      <div className='min-h-screen flex flex-wrap content-between bg-gray-500 text-center'>
+        <div className='w-full block'>
+          <Header/>
+          <main>
+            TODO: {/* </Outlet> */}
+          </main>
+          <Footer/>
+        </div>
+      </div>
+    )
+  } else{
+    return null
+  }
+}
+
+export default App
+```
+
+abhi humne apane main file me provider set nhi kra kyunki hum react redux ka use kr rahe hai to provider bhi to setUp krna hoga na to wo kr lete hai...
+
+-> it should look like this ...
+
+```js
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+import { Provider } from 'react-redux'
+import store from './store/store.js'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <Provider store={store}>
+    <App />
+    </Provider>
+  </StrictMode>,
+)
+
+```
