@@ -602,7 +602,7 @@ aise hi hum apane requiements ke anusar or bhi functionalites add kr skte hai js
 -> ***Creating Store***
 
 creating the store named folder inside our src folder then creating a store.js  inside it...
-
+ 
 agar hume yaad ho to sbse pahale store create krte the uske liye 
 ```js
 import { configureStore } from "@reduxjs/toolkit";
@@ -684,17 +684,356 @@ export default store;
 
 yaha hum components ko Ek component naam ke folder me banayenge or un sbko ek ek krke export na krke blki barrel export krenge using index.js
 
+### Container
+isme bs styling properties add krte hai or baaki jo cheezein rehti hai wo as it is displat karwa dete hai.. ab iss fayda pata hai kya hai maan lo mujhe width chahiye 80% then mai container ka w-80 % krdunga bs ...
+
+```js
+import React from 'react'
+function Container({children}) {
+  return (
+    <div className='w-full  max-w-7xl mx-auto px-4'>{children}</div>
+  )
+}
+export default Container
+```
+
 ### Header
+
+Header bada hi optional hai mtlb isme hum log out button sbko to nhi dikha skte na.. jo login kiya hoga ussi ko dikhayenge... uske liye iske andar ek or component banayenge... logout.jsx
+
+***LogoutBtn.jsx***
+logout ke baad hume kuchh actions lena padega mtlb dispatch krna hoga to use import krenge slice ko import kareneg.. auth services chahiye hongi jiske basis pr chack krenge to use bhi import karenge..
+
+```js
+import React from 'react'
+import {useDispatch} from 'react-redux'
+import authService from '../../appwrite/config'
+import {logout} from '../../features/authSlice'
+
+function LogoutBtn() {
+  const dispatch = useDispatch()
+  const logoutHandler = () => {
+    authService.logout().then(() => {
+      dispatch(logout())
+    })
+  }
+  return (
+    <button
+      className='inline-block px-6 py-2 duration-200 hover:bg-blue-100 rounded-full'
+    >Logout</button>
+  )
+}
+
+export default LogoutBtn
+```
+
+
+***Header.jsx***
+
+```js
+import React from 'react'
+import {Container, Logo, LogoutBtn} from '../index'
+import { Link, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+
+function Header() {
+  const authStatus = useSelector((state) => state.auth.status)
+  const navigate = useNavigate()
+  // ab is tareeke ka navigate jb bhi bnta hai to generally ek array banaya jata hai or uske uppar loop kiya jata hai.. or wo array me collection of objects hote hai jisme kya ster hoga? navigation bar ke buttonns.. ab normally hota to naya button aane pr ek pura button add krte hum but yaha bs use array me add krdo or navigate uspr loop through krlega..
+  const navItems = [
+    {
+      name: 'Home', // konsa button hai
+      slug: '/', // slug yaani url mtlb kaha pr jaa raha hai navigate krke
+      active: true
+    },
+    {
+      name: 'Login', // konsa button hai
+      slug: '/login', // slug yaani url mtlb kaha pr jaa raha hai navigate krke
+      active: !authStatus
+    },
+    {
+      name: 'Signup',
+      slug: '/signup',
+      active: !authStatus
+    },
+    {
+      name: 'All Posts',
+      slug: '/all-posts',
+      active: authStatus
+    },
+    {
+      name: 'Add Post',
+      slug: '/add-post',
+      active: authStatus
+    }
+  ]
+
+
+
+
+  return (
+    <header className='py-3 shadow bg-gray-500'>
+      {/* ab dekha container ka use? container kahi bhi use ho skta hai.. wo bs basic css ki property add krne ke liye hai.. */}
+      <Container>
+        <nav className='flex'>
+          <div className='mr-4'>
+            {/* yaha link me to ka mtlb hai ki logo pr click karenge to wapas hoe pr hi aayenge */}
+            <Link to='/'> 
+              <Logo width ='70px'/>
+            </Link>
+          </div>
+          {/* ab ek unorderedlist bana kke conditional loop lagayenge apane navitems pr or waha se chezien laayenge yaaha pr */}
+          <ul className='flex ml-auto'>
+            {navItems.map((item) => 
+              item.active ? (
+                <li key={item.name}>
+                  <button
+                    onClick={() => navigate(item.slug)} // button click krne pr navigate kro? kaha lekr jau? item.slug pr yani uske url pr
+                    className='inline-block px-6 py-2 duration-200 hover:bg-blue-100 rounded-full'
+                  >{item.name}</button>
+                </li>
+              ) : null
+            )}
+            {/* ab dekhte hai logout button... humare pass authStatus availablle hai to usi se pucch lete hai ki true hai? mtlb logged in hoga to hi to logout dikhayenge */}
+            {authStatus && (
+              <li>
+                <LogoutBtn/>
+              </li>
+            )}
+          </ul>
+        </nav>
+      </Container>
+    </header>
+  )
+}
+
+export default Header
+```
+
 
 
 
 ### Footer
 
+```js
+import React from 'react'
+import { Link } from 'react-router-dom'
+import Logo from '../Logo'
+
+function Footer() {
+  return (
+    <section className="relative overflow-hidden py-10 bg-gray-400 border border-t-2 border-t-black">
+            <div className="relative z-10 mx-auto max-w-7xl px-4">
+                <div className="-m-6 flex flex-wrap">
+                    <div className="w-full p-6 md:w-1/2 lg:w-5/12">
+                        <div className="flex h-full flex-col justify-between">
+                            <div className="mb-4 inline-flex items-center">
+                                <Logo width="100px" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">
+                                    &copy; Copyright 2023. All Rights Reserved by DevUI.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="w-full p-6 md:w-1/2 lg:w-2/12">
+                        <div className="h-full">
+                            <h3 className="tracking-px mb-9  text-xs font-semibold uppercase text-gray-500">
+                                Company
+                            </h3>
+                            <ul>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Features
+                                    </Link>
+                                </li>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Pricing
+                                    </Link>
+                                </li>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Affiliate Program
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Press Kit
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="w-full p-6 md:w-1/2 lg:w-2/12">
+                        <div className="h-full">
+                            <h3 className="tracking-px mb-9  text-xs font-semibold uppercase text-gray-500">
+                                Support
+                            </h3>
+                            <ul>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Account
+                                    </Link>
+                                </li>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Help
+                                    </Link>
+                                </li>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Contact Us
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Customer Support
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="w-full p-6 md:w-1/2 lg:w-3/12">
+                        <div className="h-full">
+                            <h3 className="tracking-px mb-9  text-xs font-semibold uppercase text-gray-500">
+                                Legals
+                            </h3>
+                            <ul>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Terms &amp; Conditions
+                                    </Link>
+                                </li>
+                                <li className="mb-4">
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Privacy Policy
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        className=" text-base font-medium text-gray-900 hover:text-gray-700"
+                                        to="/"
+                                    >
+                                        Licensing
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+  )
+}
+
+export default Footer
+```
+
+### logo.jsx
+ye ek logo yani image return krega jo ki hum kahi or use krenge jaise footer...
+
+```js
+import React from 'react'
+
+function Logo({width = '100px'}) {
+  return (
+    <div>Logo</div>
+  )
+}
+
+export default Logo
+```
+
+### Button.jsx
+
+ye ek button ka reusable componnet hum design karenge jise chahe to multiple jagahon pr reuse kr skte hai ..
+
+```js
+import React from 'react'
+
+function Button({
+    children,
+    type = 'button',
+    bgColor = 'bg-blue-600',
+    textColor = 'text-white',
+    className = '',
+    ...props // iska mtlb ki inke alawa bhi agar aapne koi or props add kiye hai to unhe spread kr lete hai
+}) {
+  return (
+    <button className={`px-4 py-2 rounded-lg ${bgColor} ${textColor} ${className}`} {...props}>{children}</button>
+  )
+}
+
+export default Button
+```
+
+### Input.jsx
+
+```js
+import React,{useId} from 'react'
+
+// forwardRef bs ek hook hi hai iske baare me achhe se online padh lena jyada kuchh hai nhi 
+const Input = React.forwardRef(function Input({
+    label,
+    type = "text",
+    className = "",
+    ...props
+}, ref){
+    const id = useId()
+    return (
+        <div className='w-full'>
+            {label && <label className='inline-block mb-1 pl-1'  htmlFor={id}>{label}</label>}
+            <input
+                type={type}
+                className={`px-3 py-2 rounded-lg bg-white text-black outline-none focus:bg-gray-50 duration-200 border border-gray-200 w-full ${className}`}
+                ref={ref}
+                {...props}
+                id={id}
+            />
+        </div>
+    )
+})
+
+export default Input
+```
+
 
 
 ***
 
-### State Management
+## State Management
 
 humare main kaam abhi App.jsx me hoga..kya?  
 yaha hum dekhenge or manage karnege ki jaise hi mera page load ho to sbse pahale hum check kre ki user login hai ki nahi...  
