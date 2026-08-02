@@ -1030,6 +1030,313 @@ export default Input
 ```
 
 
+### Select.jsx
+
+```js
+import React, {useId} from 'react'
+
+function Select({
+    options,
+    label,
+    className = '',
+    ...props
+}, ref) {
+    const id = useId()
+  return (
+    <div className='w-full'>
+        {label && <label htmlFor={id} className='' ></label>}
+        <select
+            {...props}
+            id={id}
+            ref={ref}
+            className={`px-3 py-2 rounded-lg bg-white text-black outline-none focus:bg-gray-50 duration-200 border border-gray-200 w-full  ${className}`}
+        >
+            {/* agar options me kucch value hi nhi hua or hum uspr loop laga diye to pakka crash kareg ausse bachane ke liye null safety check hoga.. null safety? are kuchh nhi hai condition hi to hai... */}
+            {options?.map((option) => (
+                <option key={option} value={option}>
+                    {option}
+                </option>
+            ))}
+        </select>
+    </div>
+  )
+}
+
+// ab last input.jsx me humne forward ref ka use kiya tha waha alag way se kiya tha.. yaha bhi karenge but different syntactical way me
+
+export default React.forwardRef(Select)
+```
+
+### Postcard.jsx
+jaisa humne apane app me dekha tha ki ek card type ka appear ho raha tha hummare home page pr or uske uppar tap karne pr pura article open ho raha tha to haan wo bhi ek componennt hi hai ab use banate hai...
+
+```js
+import React from 'react'
+import appwriteService from '../appwrite/config'
+import {Link} from 'react-router-dom'
+
+// ye sb services hum appWrote me jo postcard wala services banaye the waha se le rahe hai
+function Postcard({$id, title, featuredImage}) {
+    // ye jo $ sign use hua hai id ke saath ye appWrite ka syntax hai 
+  return (
+    //saara ka saara card hi clickabe hona chahiye isliye sbka Link ke andar wrap krdo
+    <Link to={`/post/${$id}`}>
+        <div className='w-full bg-gray-100 rounded-xl p-4'>
+            <div className='w-full justify-center mb-4'>
+                {/* ab yaha mujhe image chahiye.. aisa koi method hai kya jo mere post ka mujhe preview deta ho.. haan jao check kro appwrite me config me getFilePreview naam se method to banaye ho jo ki fileid leta hai or wo return kr deta hai uska url */}
+                {/* ab yaha pr humne $id ki jagah featuredImage ka use kyun kiya ? jbki wo tp id leta hai na... haan ye jo $id ye pure post ki id hai but hume image chahiye or featuredImage hi uski id bhi hai*/}
+                <img src={appwriteService.getFilePreview(featuredImage)} alt={title} className='rounded-xl'/>
+            </div>
+            <h2 className='text-xl font-bold'>{title}</h2>
+        </div>
+    </Link>
+  )
+}
+
+export default Postcard
+```
+
+### React hook form
+
+***Login.jsx***
+```js
+import React, {useState} from 'react'
+import {Link, useNavigate} from 'react-router-dom' // hume link chahiye hoga clickable banane ke liye or navigate kahi pr navigate krke jaane ke liye login ke baad
+// mujhe apane authslice me se login ki functionality bhi chahiye hogi taaki login karwa paun mai..
+import {login as authLogin} from '../features/authSlice' // login as authLogin ka mtlb hum apane iss file me login ko authLogin ke naam se use karenge
+// simillarly authentication purpose ke liye authService bhi chahiyye hoga na..
+import authService from '../appwrite/auth'
+import {Button, Input, Logo} from './index'
+import { useDispatch } from 'react-redux'
+// react hook form ka bhi use kr rahe hai to use bhi import karenge
+import {useForm} from 'react-hook-form'
+
+
+function Login() {
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+
+    // useForm ko use karenge ab
+    const {register, handleSubmit} = useForm()
+
+    // ek useState ka use krenge errors display karwane ke liye
+
+    const [error, setError] = useState("")
+
+    // ab hum ek login naam se method banayenge jisse login karenge or async method banayege kyunki information submit hogi wapas aayegi kaafi kucchh ho skta hai
+
+    const login = async (data) => {
+        // sbse pehla kaam jo ki basic functionality hai ki jaise login start kro sbse pahale saare errors agar koi hai to clean out krdo
+        setError("")
+        try {
+            const session = await authService.login(data) // ye yaha se jo bhi response aata hai wo aata hai ek session ... agar session hai to user loggedin hai agar session nhi hai to user logged in nnhi hai
+            if(session){
+                // agar session hai to sbse pahale currentuser ka data nikal lo
+                const userData = await authService.getCurrentUser()
+                // ab agar userData aaya hai to hume dispatch karna hoga 
+                if(userData){
+                    dispatch(authLogin(userData))
+                }
+                // ab jb user yaha tk aa gaya hai login ho chuka hai to use yaha rakhna hi kyun hai agar login ho gaya hai to kahi or bhejo use na
+                navigate("/")
+            }
+        } catch (error) {
+            setError(error.message)
+        }
+    }
+  return (
+    <div
+    className='w-full flex items-center justify-center'
+    >
+        <div className='mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 border border-black/10'>
+            <div className='mb-2 flex justify-center'>
+                <span className='inline-block w-full max-w-25'>
+                    <Logo width='100%'/>
+                </span>
+            </div>
+            <h2 className='text-center text-2xl font-bold leading-tight'>Sign in to your account</h2>
+            <p className='mt-2 text-center text-base text-black/60'>
+                Don&apos;t have any account?&nbsp;
+                <Link
+                    to="/signup"
+                    className='font-medium text-primary transition-all duration-200 hover:underline'
+                >Sign Up</Link>
+            </p>
+            {error && <p className='text-red-600 mt-8 text-center'>{error}</p>}
+            {/* react-hook-form */}
+            {/* ab yaha dhyan den ahai ki onsubmit me kya hoga? jb hum useForm hook ka use kiye the to do cheezein li the ek register or ek handle submit to yaha pr handleSubmit hi pass hoga... or yaha interesting cheez ki handleSubmit khud me ek method hai or iske andar hume apna method pass krna hoga ki submit hone pr konsa method execute ho */}
+            <form onSubmit={handleSubmit(login)} className='mt-8'>
+                <div className='space-y-5'>
+                    {/* ab yaha hum inputs banayenge or dhyaan dena ye humne jo input componnet banaya hai ye wahi input hai */}
+                    <Input 
+                    label="Email Address: "
+                    placeholder="Enter your email"
+                    type="email"
+                    // yaha ye register ka kya kaam hai? register ek method hai jo ki react-hook-form se aata hai or ye input ko register krta hai react-hook-form ke andar taaki ye form ke andar ka data manage ho sake or ye register method ek object return krta hai jisme kuch properties hoti hai jaise onChange, onBlur, name, ref etc. to hum is object ko spread operator ke through input me pass krte hai taaki ye input react-hook-form ke sath connect ho jaye 
+                    {...register("email", {
+                        required: true,
+                        validate: {
+                            // yaha hum ek custom validation function bhi pass kr skte hai jaise ki email validation
+                            matchPattern: (value) => 
+                                // simple email regex
+                                 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || "Invalid email address"
+                            
+                        }
+                    })}
+                    />
+                    {/* simillarly password ke liye bhi input field banayenge  */}
+                    <Input 
+                    label="Password: "
+                    placeholder="Enter your password"
+                    type="password"
+                    {...register("password", {
+                        required: true,
+                        minLength: {
+                            value: 6,
+                            message: "Password must be at least 6 characters"
+                        }
+                    })}
+                    />
+                    {/* ab aayega humara custom designed button */}
+                    <Button type="submit" className="w-full">Sign In</Button>
+                </div>
+            </form>
+        </div>
+    </div>
+  )
+}
+
+export default Login
+```
+
+***Signup.jsx***
+```js
+import React, {useState} from 'react'
+import authService from '../appwrite/auth' 
+import { Link, useNavigate } from 'react-router-dom'
+import { login } from '../features/authSlice'
+import { useDispatch } from 'react-redux'
+import { set, useForm } from 'react-hook-form'
+import { Button, Input, Logo } from './index' 
+
+function Signup() {
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+    const [error, setError] = useState("")
+    const {register, handleSubmit} = useForm()
+
+    const create = async (data) => {
+        setError("")
+        try {
+            // yaha pe signup ka logic hoga
+            const userData = await authService.createAccount(data)
+            if(userData){
+                const userData = await authService.getCurrentUser()
+                if(userData){
+                    dispatch(login(userData))
+                }
+                navigate("/")
+            }
+        } catch (error) {
+            setError(error.message)
+            
+        }
+    }
+  return (
+    
+    <div className='flex item-center justify-center '>
+        <div className={`mx-auto w-full max-w-lg bg-gray-100 rounded-xl p-10 border border-black/10`}>
+            <div className='mb-2 flex justify-center'>
+                <span className='inline-block w-full max-w-25'>
+                    <Logo width='100%'/>
+                </span>
+            </div>
+            <h2 className='text-center text-2xl font-bold leading-tight'>Sign up to Create account</h2>
+            <p className='mt-2 text-center text-base text-black/60'>
+                Already have an account?&nbsp;
+                <Link
+                    to="/login"
+                    className='font-medium text-primary transition-all duration-200 hover:underline'
+                >Sign In</Link>
+            </p>
+            {error && <p className='text-red-600 mt-8 text-center'>{error}</p>}
+            <form onSubmit={handleSubmit(create)}>
+                <div className='space-y-5'>
+                    <Input 
+                    label= "Full Name: "
+                    placeholder="Enter your full name"
+                    type="text"
+                    {...register("name", {
+                        required: true,
+                    })}
+                    />
+                    <Input 
+                    label="Email Address: "
+                    placeholder="Enter your email"
+                    type="email"
+                    {...register("email", {
+                        required: true,
+                        validate: {
+                            matchPattern: (value) => 
+                                 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || "Invalid email address"
+                            
+                        }
+                    })}
+                    />
+                    <Input 
+                    label="Password: "
+                    placeholder="Enter your password"
+                    type="password"
+                    {...register("password", {
+                        required: true,
+                        minLength: {
+                            value: 6,
+                            message: "Password must be at least 6 characters long"
+                        }
+                    })}
+                    />
+                    <Button type="submit" className="w-full">Create Account</Button>
+                </div>
+            </form>
+        </div>
+    </div>
+  )
+}
+
+export default Signup
+```
+
+### AutLayout.jsx
+is component me humne ek basic layout banaya hai jisme header or footer dono included hai.. or iske beech me outlet ka use kiya hai jisse ki hum apane routes ke hisaab se content ko render kr sake... 
+
+```js
+// kaafi production grade applications me ye hota hai iska kaam hai ke user ko authenticate karna aur agar user authenticate nahi hai to usko login page pe redirect karna. Ye ek wrapper component hai jo ki aapke protected routes ke around wrap karega. isse hoga ye ki agar user authenticate nahi hai to wo login page pe redirect ho jayega aur agar user authenticate hai to wo protected route ke andar ka content dekh payega. Ye ek higher order component hai jo ki aapke protected routes ke around wrap karega.
+
+import React, {useEffect, useState} from 'react'
+import {useNavigate} from 'react-router-dom'
+import {useSelector} from 'react-redux'
+
+
+export default function Protected({children, authentication = true}) {
+    const navigate = useNavigate()
+    const [loader, setLoader] = useState(true)
+    const authStatus = useSelector((state) => state.auth.status)
+
+    useEffect(() => {
+        if(authentication && authStatus !== authentication){
+            navigate('/login')
+        }
+        else if(!authentication && authStatus !== authentication){
+            navigate('/')
+        }
+        setLoader(false)
+    }, [authStatus, navigate, authentication])
+  return loader ? <div className='flex justify-center items-center h-screen'>Loading...</div> : children
+}
+```
+
+
+
 
 ***
 
