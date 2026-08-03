@@ -1355,16 +1355,13 @@ export default function RTE({name, control, label, defaultValue = ""}) {
         control={control}
         render={({field: {onChange}}) => (
             <Editor
+                apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
                 initialValue={defaultValue}
                 init={{
                     initialValue: defaultValue,
                     height: 500,
                     menubar: true,
-                    plugins: [
-                        'advlist autolink lists link image charmap print preview anchor',
-                        'searchreplace visualblocks code fullscreen',
-                        'insertdatetime media table paste code help wordcount', 'emoticons', 'codesample', 'table', 'lists', 'link', 'image', 'media', 'fullscreen', 'preview', 'help'
-                    ],
+                    plugins:"advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount emoticons codesample",
                     toolbar: 'undo redo | formatselect | ' +
                         'bold italic backcolor | alignleft aligncenter ' +
                         'alignright alignjustify | bullist numlist outdent indent | ' +
@@ -1405,9 +1402,9 @@ function PostForm({ post }) {
     const submit = async (data) => {
         if (post) {
             // update post
-            const file = data.image[0] ? appwriteService.uploadFile(data.image[0]) : null
+            const file = data.image[0] ? await appwriteService.uploadFile(data.image[0]) : null
             if (file) {
-                appwriteService.deleteFile(post.featuredImage)
+                await appwriteService.deleteFile(post.featuredImage)
             }
             const dbPost = await appwriteService.updatePost(post.$id, { ...data, featuredImage: file ? file.$id : undefined });
             if (dbPost) {
@@ -1415,15 +1412,16 @@ function PostForm({ post }) {
             }
         }
         else {
-            const file = data.image[0] ? appwriteService.uploadFile(data.image[0]) : null
-            if (file) {
-                const fileId = file.$id
-                data.featuredImage = fileId
+            const file = data.image[0] ? await appwriteService.uploadFile(data.image[0]) : null
+                if (!file) {
+                    console.log("File upload failed");
+                    return;
+                }
+                data.featuredImage = file.$id;
                 const dbPost = await appwriteService.createPost({ ...data, userId: userData.$id });
                 if (dbPost) {
                     navigate(`/post/${dbPost.$id}`);
                 }
-            }
         }
     }
 
@@ -1431,10 +1429,10 @@ function PostForm({ post }) {
     const slugTransform = useCallback((value) => {
         if (value && typeof value === "string") {
             return value
-                .trim()
-                .toLowerCase()
-                .replace(/^[a-zA-Z\d\s]+/g, '-')
-                .replace(/\s/g, '-')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
         }
         return ''
     }, [])
@@ -1581,7 +1579,7 @@ function AllPosts() {
             <div className='flex flex-wrap'>
                 {posts.map((post) =>(
                     <div key={post.$id} className='p-2 w-1/4'>
-                        <PostCard post={post} />
+                        <PostCard {...post} />
                     </div>
                 ))}
             </div>
@@ -1806,7 +1804,7 @@ function App() {
         <div className='w-full block'>
           <Header/>
           <main>
-            TODO: {/* </Outlet> */}
+            <Outlet/>
           </main>
           <Footer/>
         </div>
@@ -1927,3 +1925,54 @@ createRoot(document.getElementById('root')).render(
 ```
 
 ## CORS AND DEBUGGING
+
+
+### src/components/index.js
+
+```js
+import Header from "./header/Header";
+import Footer from "./footer/Footer";
+import Container from './container/Container'
+import Logo from "./Logo";
+import LogoutBtn from './header/LogoutBtn'
+import Input from './Input'
+import Button from './Button'
+import RTE from "./RTE";
+import Select from "./Select";
+import Signup from "./Signup";
+import Login from "./Login";
+import PostForm from './post-form/PostForm'
+import PostCard from './Postcard'
+import AuthLayout from './AuthLayout'
+
+export {
+    Header,
+    Footer,
+    Container,
+    Logo,
+    LogoutBtn,
+    Input,
+    Button,
+    RTE,
+    Select,
+    Signup,
+    Login,
+    PostForm,
+    PostCard,
+    AuthLayout,
+}
+```
+
+### src/pages/index.js
+
+```js
+import AddPost from "./AddPost";
+import AllPosts from "./AllPosts";
+import EditPost from "./EditPost";
+import Home from "./Home";
+import Login from "./Login";
+import Post from "./Post";
+import Signup from "./Signup";
+
+export { AddPost, AllPosts, EditPost, Home, Login, Post, Signup };
+```
