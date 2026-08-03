@@ -1335,6 +1335,174 @@ export default function Protected({children, authentication = true}) {
 }
 ```
 
+### RTE.jsx
+
+```js
+import React from 'react'
+import { Editor } from '@tinymce/tinymce-react';
+// ab editor hum yaha separately component bana rahe hai to main dikkat wali baat ye aati hai ki hum iska refernce kaise milega jaha pr hume use krna hai isko... to iske liye aata hai controller jo ki hum react hook form se milta hai or iska kaam hai ki humare form ke andar jo bhi input field hai usko control karna aur uska reference dena taki hum usko easily access kar sake... to iske liye hum react hook form ka use karenge aur uske andar controller ka use karenge taki humare editor ko control kar sake... to chaliye shuru karte hai...
+import { useForm, Controller } from 'react-hook-form';
+
+export default function RTE({name, control, label, defaultValue = ""}) {
+    // yaha pr ye control hi hai jo actually is components se control ko pass on karega jo bhi parent component hai jaha pr hum isko use kar rahe hai taki humare editor ka reference mil sake aur hum usko easily access kar sake.... 
+  return (
+    <div className='w-full'>
+        {label && <label className='inline-block mb-1 pl-1'>{label}</label>}
+
+        {/* ab ye controller kaam kaise krta hai? render me field ko track kr rahe hai mtlb iss field ke andar kuchh bhi change ho to (since we used onChange) to editor ko render krdo */}
+        <Controller
+        name={name || "content"}
+        control={control}
+        render={({field: {onChange}}) => (
+            <Editor
+                initialValue={defaultValue}
+                init={{
+                    initialValue: defaultValue,
+                    height: 500,
+                    menubar: true,
+                    plugins: [
+                        'advlist autolink lists link image charmap print preview anchor',
+                        'searchreplace visualblocks code fullscreen',
+                        'insertdatetime media table paste code help wordcount', 'emoticons', 'codesample', 'table', 'lists', 'link', 'image', 'media', 'fullscreen', 'preview', 'help'
+                    ],
+                    toolbar: 'undo redo | formatselect | ' +
+                        'bold italic backcolor | alignleft aligncenter ' +
+                        'alignright alignjustify | bullist numlist outdent indent | ' +
+                        'removeformat | help',
+                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                }}
+                onEditorChange={onChange}
+            />
+        )}
+        />
+    </div>
+  )
+}
+```
+
+### PostForm.jsx
+
+```js
+import React, { use, useCallback, useEffect } from 'react'
+import { set, useForm } from 'react-hook-form';
+import { Button, Input, Select, RTE } from '../index'
+import appwriteService from '../../appwrite/config'
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+
+function PostForm({ post }) {
+    const { register, handleSubmit, watch, setValue, control, getValues } = useForm({
+        defaultValues: {
+            title: post?.title || "",
+            slug: post?.slug || "",
+            content: post?.content || "",
+            status: post?.status || "active",
+        }
+    }); //useForm hume kaafi cheezien deta hai jaise register , handleSubmit, errors, reset, watch, setValue, getValues, control etc. jisme se watch ka kaam hai ki kisi bhi field ko agar hume continuously watch karna hai to hum watch ka use karenge. jaise ki agar hume kisi field ka value change hone par kuch action lena hai to hum watch ka use karenge. aur agar hume kisi field ka value ko set karna hai to hum setValue ka use karenge. aur agar hume kisi field ka value ko get karna hai to hum getValues ka use karenge. aur agar hume kisi field ka value ko reset karna hai to hum reset ka use karenge. aur agar hume kisi field ka value ko validate karna hai to hum handleSubmit ka use karenge. aur agar hume kisi field ka value ko register karna hai to hum register ka use karenge. aur agar hume kisi field ka value ko control karna hai to hum control ka use karenge.
+    const navigate = useNavigate();
+    const userData = useSelector((state) => state.user.userData);
+
+    const submit = async (data) => {
+        if (post) {
+            // update post
+            const file = data.image[0] ? appwriteService.uploadFile(data.image[0]) : null
+            if (file) {
+                appwriteService.deleteFile(post.featuredImage)
+            }
+            const dbPost = await appwriteService.updatePost(post.$id, { ...data, featuredImage: file ? file.$id : undefined });
+            if (dbPost) {
+                navigate(`/post/${dbPost.$id}`);
+            }
+        }
+        else {
+            const file = data.image[0] ? appwriteService.uploadFile(data.image[0]) : null
+            if (file) {
+                const fileId = file.$id
+                data.featuredImage = fileId
+                const dbPost = await appwriteService.createPost({ ...data, userId: userData.$id });
+                if (dbPost) {
+                    navigate(`/post/${dbPost.$id}`);
+                }
+            }
+        }
+    }
+
+    // this method is to transform the slug (url) into a valid format. for example if the user enters "My First Post" as the title, then the slug should be "my-first-post". so we will use this method to transform the title into a valid slug.
+    const slugTransform = useCallback((value) => {
+        if (value && typeof value === "string") {
+            return value
+                .trim()
+                .toLowerCase()
+                .replace(/^[a-zA-Z\d\s]+/g, '-')
+                .replace(/\s/g, '-')
+        }
+        return ''
+    }, [])
+
+    useEffect(() => {
+        const subscription = watch((value, { name }) => {
+            if (name === 'title') {
+                setValue('slug', slugTransform(value.title, { shouldValidate: true }))
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [watch('title'), slugTransform, setValue])
+
+    return (
+        <form onSubmit={handleSubmit(submit)} className="flex flex-wrap">
+            <div className="w-2/3 px-2">
+                <Input
+                    label="Title :"
+                    placeholder="Title"
+                    className="mb-4"
+                    {...register("title", { required: true })}
+                />
+                <Input
+                    label="Slug :"
+                    placeholder="Slug"
+                    className="mb-4"
+                    {...register("slug", { required: true })}
+                    onInput={(e) => {
+                        setValue("slug", slugTransform(e.currentTarget.value), { shouldValidate: true });
+                    }}
+                />
+                <RTE label="Content :" name="content" control={control} defaultValue={getValues("content")} />
+            </div>
+            <div className="w-1/3 px-2">
+                <Input
+                    label="Featured Image :"
+                    type="file"
+                    className="mb-4"
+                    accept="image/png, image/jpg, image/jpeg, image/gif"
+                    {...register("image", { required: !post })}
+                />
+                {post && (
+                    <div className="w-full mb-4">
+                        <img
+                            src={appwriteService.getFilePreview(post.featuredImage)}
+                            alt={post.title}
+                            className="rounded-lg"
+                        />
+                    </div>
+                )}
+                <Select
+                    options={["active", "inactive"]}
+                    label="Status"
+                    className="mb-4"
+                    {...register("status", { required: true })}
+                />
+                <Button type="submit" bgColor={post ? "bg-green-500" : undefined} className="w-full">
+                    {post ? "Update" : "Submit"}
+                </Button>
+            </div>
+        </form>
+    )
+}
+
+export default PostForm
+```
+
 
 
 
